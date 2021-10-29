@@ -1,0 +1,17 @@
+usage: test-rw-treefile [treefile] 
+reading: binput.3...
+
+PrintedTree: The number prefixes are the tree levels.
+
+	The order is left to right subtree.
+0
+ 1
+  2 (0x41)A
+  2 (0x44)D
+ 1
+  2 (0x46)F
+  2
+   3 (0x43)C
+   3
+    4 (0x42)B
+    4 (0x45)E

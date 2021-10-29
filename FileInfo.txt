@@ -1,0 +1,62 @@
+File Info for encoding of FilePlain
+Content (n is for newline)
+AAAAABBBBn
+CCCEn
+
+Freq.	Symbol
+  5	'A'(0x41)
+  4	'B'(0x42)
+  3	'C'(0x43)
+  1	'E'(0x45)
+  2	'\n'(0xa)
+
+Each line of table below is one byte of the encoded file
+
+Dec.  Hex. 	Binary Nybbles	Descriptions/Annotations
+ -16 (0xf0):	1111 0000 --\	Magic Number 0x80F0
+-128 (0x80):	1000 0000 --/	byte-swapped; little-endian architecture
+   8 (0x08):	0000 1000 --	8 bits per tree node and leaf
+
+   0 (0x00):	0000 0000 --	start tree: 0 => internal node; 1 => leaf
+   0 (0x00):	0000 0000 			.
+   0 (0x00):	0000 0000 		       / \
+   1 (0x01):	0000 0001 		     0/   \1	0/1 are branch codes
+  69 (0x45):	0100 0101 E		     /     \
+   1 (0x01):	0000 0001 		    /       \
+  10 (0x0a):	0000 1010 n		   .         .
+   1 (0x01):	0000 0001 		 0/ \1     0/ \1
+  67 (0x43):	0100 0011 C		 /   \     /   \
+   0 (0x00):	0000 0000 		.     .   .     .
+   1 (0x01):	0000 0001 	       / \    C   B     A
+  66 (0x42):	0100 0010 B	     0/   \1
+   1 (0x01):	0000 0001 	     .     .
+  65 (0x41):	0100 0001 A 	     E     n		 Tree Reconstructed
+  		end of tree in the file
+
+  33 (0x21):	0010 0001 --+	count is the number of bits in the encoding.
+   0 (0x00):	0000 0000   |	this count is an unsigned int (4 bytes).
+   0 (0x00):	0000 0000   |	number of bits is stored little-endian.
+   0 (0x00):	0000 0000 --+
+
+ -96 (0xa0):	1010 0000 -+	byte 0 of unsigned int (low order byte)
+-118 (0x8a):	1000 1010  |	byte 1
+ -22 (0xea):	1110 1010  |	byte 2 (follows byte 3)
+  -1 (0xff):	1111 1111 -+	byte 3 is start of the packed bit sequence.
+
+   0 (0x00):	0000 0000 -+	this is second, last unsigned int of bits.
+   0 (0x00):	0000 0000  |	the bits after the 33rd bit are 0 padding.
+   0 (0x00):	0000 0000  |
+-128 (0x80):	1000 0000 -+	the 1 bit is the last (33rd) bit of encoding.
+
+How the packed bits would be read and decoded
+
+	0          1          2          3  3
+Index:	0 2 4 6  8 0 2 4  6 8 0 2  4 6 8 0  2
+Bit:	11111111 11101010 10001010 10100000 10000000000000000000000000000000
+8th Bit	       ^        ^        ^        ^         ^       ^       ^      ^
+Byte#:	       3        2        1        0         3       2       1      0
+
+Grouping by decoding sequence:
+Bits:	11 11 11 11 11 10101010 001 010101 000 001
+Decode:	 A  A  A  A  A  B B B B   n  C C C   E   n
+
