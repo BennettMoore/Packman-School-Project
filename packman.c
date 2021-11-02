@@ -46,7 +46,7 @@ int main(int argc, char * argv[]){
 	unsigned short magic = get_magic();
 	
 //[CF1]	//Check File 1
-	FILE * file1 = fopen(argv[1], "r");
+	FILE * file1 = fopen(argv[1], "rb");
 	if(file1 == NULL){		//File 1 not found	//FATAL ERROR
 		report_error("packman.c:main:CF1", __LINE__, "argv[1]", " Fatal error: File 1 could not be found");
 		return EXIT_FAILURE;
@@ -90,7 +90,7 @@ int main(int argc, char * argv[]){
 		}
 	}
 	else{
-		file2 = fopen(argv[2], "w");
+		file2 = fopen(argv[2], "wb");
 		if(file2 == NULL){	//File 2 not found	//FATAL ERROR
 			errno = EPERM;
 			report_error("packman.c:main:CF2", __LINE__, "argv[2]", " Fatal error: File 2 could not be found or created");
