@@ -21,7 +21,7 @@
 int compare_syms(const void * lhs, const void * rhs){
 	Tree_node lhs_t = (Tree_node) lhs;
 	Tree_node rhs_t = (Tree_node) rhs;
-	return lhs_t < rhs_t;
+	return lhs_t->freq < rhs_t->freq;
 }
 
 /**
@@ -40,7 +40,7 @@ void print_sym(const void * item, FILE * outfp){
 /**
  * @brief Find all symbols in the provided file
  */
-uint * find_syms(FILE * input){
+Tree_node * find_syms(FILE * input){
 	bool still_reading = true;
 	size_t nmemb = BUFSIZE/BITS_PER_BYTE;
 	size_t size = BITS_PER_BYTE;
@@ -48,6 +48,7 @@ uint * find_syms(FILE * input){
 	uint * syms = (uint *)calloc(MAXSYM, sizeof(uint));
 	uchar * buffer = (uchar*)calloc(BUFSIZE, sizeof(uchar));
 
+	//Find symbols and frequencies in text file
 	for(size_t i = 0; i < MAXSYM; i++){
 		syms[i] = 0;
 	}
@@ -64,12 +65,37 @@ uint * find_syms(FILE * input){
 		}
 	}
 
+	//Turn each unique symbol/frequency pair into a Tree_node and put it in an array
+	Tree_node * nodes = (Tree_node *)calloc(MAXSYM, sizeof(Tree_node));
+	size_t new_size = 0;
+
+
+	for(int i = 0; i < MAXSYM; i++){
+		if(syms[i] != 0){
+			nodes[new_size] = create_tree_node(i, syms[i]);
+			new_size++;
+		}
+	}
+
+	//Housekeeeping
+	nodes = realloc(nodes, new_size*sizeof(Tree_node));
 	free(buffer);
-	return syms;
+	free(syms);
+
+	return nodes;
 }
-
-
-
+/**
+ * @brief Turns a collection of Tree_nodes into a Huffman tree
+ */
+Tree_node make_huffman_tree(Tree_node * nodes){
+	Heap tree_heap = hdt_create(MAXSYM, compare_syms, print_sym);
+	size_t node_num = sizeof(nodes)/sizeof(Tree_node*);
+	
+	for(size_t i = 0; i < node_num; i++){
+		hdt_insert_item(tree_heap, nodes[i]);
+	}
+	return NULL; //TODO turn heap into actual Huffman Tree
+}
 
 int main(void){ //Temporary main statement
 	return 0;
