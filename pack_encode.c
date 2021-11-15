@@ -84,6 +84,28 @@ Tree_node * find_syms(FILE * input){
 
 	return nodes;
 }
+
+/**
+ * @brief Constructs interior nodes for the Huffman Tree
+ */
+Tree_node huffman_helper(Tree_node lhs, Tree_node rhs){
+	uint tot_freq = 0;
+	
+	if(rhs != NULL){
+		tot_freq = lhs->freq + rhs->freq;
+	}
+	else{
+		tot_freq = lhs->freq;
+	}
+	
+	//Creating the interior node
+	Tree_node temp = create_tree_node(NUL, tot_freq);
+	temp->left = lhs;
+	temp->right = rhs;
+
+	return temp;
+}
+
 /**
  * @brief Turns a collection of Tree_nodes into a Huffman tree
  */
@@ -91,10 +113,27 @@ Tree_node make_huffman_tree(Tree_node * nodes){
 	Heap tree_heap = hdt_create(MAXSYM, compare_syms, print_sym);
 	size_t node_num = sizeof(nodes)/sizeof(Tree_node*);
 	
+	//Sort nodes using a min-heap
 	for(size_t i = 0; i < node_num; i++){
 		hdt_insert_item(tree_heap, nodes[i]);
 	}
-	return NULL; //TODO turn heap into actual Huffman Tree
+	
+	Tree_node root = NULL;
+	while(hdt_size(tree_heap) > 2){
+		//Creates an interior node from the two lowest-frequency nodes in the heap, and inserts an interior node with the previous nodes attached
+		hdt_insert_item(tree_heap, huffman_helper(hdt_remove_top(tree_heap), hdt_remove_top(tree_heap)));
+	}
+	//Catch odd-numbered heaps
+	if(hdt_size(tree_heap) == 2){
+		root = huffman_helper(hdt_remove_top(tree_heap), NULL);
+	}
+	else{
+		root = hdt_remove_top(tree_heap);
+	}
+
+	hdt_destroy(tree_heap);
+
+	return root;
 }
 
 int main(void){ //Temporary main statement
