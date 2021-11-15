@@ -5,6 +5,8 @@
 //
 // // // // // // // // // // // // // //
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -134,6 +136,43 @@ Tree_node make_huffman_tree(Tree_node * nodes){
 	hdt_destroy(tree_heap);
 
 	return root;
+}
+
+/**
+ * @brief Recursively scouts out tree and records path to each symbol in lut
+ */
+void lut_helper(Tree_node root, char * path, char ** lut){
+	
+	if(root == NULL){} //NULL Checking
+	else if(root->sym != NUL){ //Helper found something
+		strcpy(lut[root->sym], path);
+	}
+	else{ //Helper found interior node
+		char * left_path = strdup(path);
+		char * right_path = strdup(path);
+		strcat(left_path, "0");
+		strcat(right_path, "1");
+
+		lut_helper(root->left, left_path, lut);
+		lut_helper(root->right, right_path, lut);
+	}
+
+	free(path);
+	return;
+}
+
+/**
+ * @brief generates a lookup table from a Huffman Tree
+ */
+char ** create_lut(Tree_node root){
+	char ** lut = (char **)calloc(MAXSYM, sizeof(char *));
+	char * path = (char *)calloc(BUFSIZE, sizeof(char));
+	
+
+	lut_helper(root, path, lut);
+	
+	free(path);
+	return lut;
 }
 
 int main(void){ //Temporary main statement
