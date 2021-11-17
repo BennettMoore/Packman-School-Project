@@ -174,7 +174,3 @@ char ** create_lut(Tree_node root){
 	free(path);
 	return lut;
 }
-
-int main(void){ //Temporary main statement
-	return 0;
-}
