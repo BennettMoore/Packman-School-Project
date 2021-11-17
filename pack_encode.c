@@ -12,10 +12,12 @@
 #include <string.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <errno.h>
 #include "HeapDT.h"
 #include "packman_utils.h"
 #include "pack_encode.h"
 
+#define BIT_STORAGE_BLOCK 5
 
 /**
  * @brief Compares two Tree_nodes and returns the less frequent of the two
@@ -173,4 +175,71 @@ char ** create_lut(Tree_node root){
 	
 	free(path);
 	return lut;
+}
+
+/**
+ * @brief generates a bit array from a file and its corresponding lut
+ */
+uint * make_bit_array(char ** lut, FILE * input){
+	uint * bit_array = (uint *)calloc(BIT_STORAGE_BLOCK, sizeof(uint));
+	uint bits_used = 0;
+	uint bit_index = MAX_BIT_INDEX;
+	uint array_size = BIT_STORAGE_BLOCK;
+	uint array_index = 1;
+	uchar buffer;
+	
+	//Rewind file to beginning
+	if(fseek(input, 0, SEEK_SET) != 0){
+		errno = ESPIPE;
+		report_error("pack_encode.c", __LINE__, "Input file", "File could not be rewound");
+		free(bit_array);
+		return NULL;
+	}
+	
+	//While there are still characters in the file to be read
+	while(fread(&buffer, sizeof(uchar), 1, input) == 1){
+		if(!lut[buffer]){ //Encountered invalid character
+			errno = 157; //Internal Error
+			fprintf(stderr, "error: '%c' does not exist in the generated lookup table\n", buffer);
+			free(bit_array);
+			return NULL;
+		}
+		
+		//For all characters in the specific codeword
+		for(size_t i = 0; i < strlen(lut[buffer]); i++){
+			
+			if(lut[buffer][i] == '1'){ //1 should be placed in the uint
+				bit_array[array_index] = bit_array[array_index] | 1 << bit_index;
+			} //No need to place 0's since the uint is initialized to all 0
+
+			if(bit_index > 0){ //Still bits in the uint
+				bit_index--;
+			}
+			else{
+				bit_index = MAX_BIT_INDEX;
+				array_index++;
+				
+				//Need to allocate more space
+				if(array_index >= array_size){
+					array_size += BIT_STORAGE_BLOCK;
+					bit_array = realloc(bit_array, array_size * sizeof(uint));
+					
+					if(bit_array == NULL){ //Realloc failed
+						errno = 151; //Dynamic Allocation Error
+						report_error("pack_encode.c", __LINE__, "bit_array realloc", "Fatal error: Reallocation of bit_array failed");
+						return NULL;
+					}
+
+					for(size_t j = array_index; j < array_size; j++){ //Set new allocated space to 0
+						bit_array[j] = 0;
+					}
+				}
+			}
+
+			bits_used++;
+		}
+	}
+
+	bit_array[0] = bits_used;
+	return bit_array;
 }

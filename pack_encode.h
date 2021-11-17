@@ -90,6 +90,18 @@ void lut_helper(Tree_node root, char * path, char ** lut);
  */
 char ** create_lut(Tree_node root);
 
+/**
+ * Creates a bit array from an input file and its corresponding lookup table
+ *
+ * @param lut A lookup table with paths to each character
+ * @param input The file which the lookup table describes
+ *
+ * @return An array of unsigned integers which contains the number of bits used at first, 
+ * and then shows the contents of the bit storage array
+ *
+ * @pre lut is a valid, non-empty lookup table that corresponds to the contents of input
+ */
+uint * make_bit_array(char ** lut, FILE * input);
 
 
 #endif //PACK_ENCODE_H
