@@ -103,10 +103,6 @@ Tree_node huffman_helper(Tree_node lhs, Tree_node rhs){
 	temp->left = lhs;
 	temp->right = rhs;
 	
-	printf("Interior node created with these two nodes:\n");
-	print_sym(temp->left, stdout);
-	print_sym(temp->right, stdout);
-
 	return temp;
 }
 
