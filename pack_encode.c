@@ -63,7 +63,6 @@ Tree_node * find_syms(FILE * input){
 	
 		if(read_size != BUFSIZE){ //Read everything	
 			still_reading = false;
-			printf("find_syms read in %lu bytes. Should have read in %u bytes.\n", read_size, BUFSIZE);
 		}
 		for(size_t i = 0; i < read_size; i++){
 			syms[buffer[i]]++;
