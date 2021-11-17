@@ -120,7 +120,6 @@ Tree_node make_huffman_tree(Tree_node * nodes){
 	for(size_t i = 0; i < MAXSYM; i++){
 		if(nodes[i]->freq > 0){
 			hdt_insert_item(tree_heap, nodes[i]);
-			printf("~Node [%c] added to the heap with frequency [%i]\n", nodes[i]->sym, nodes[i]->freq); //TODO remove temporary print statement
 		}
 		else{
 			free(nodes[i]);
@@ -157,7 +156,6 @@ void lut_helper(Tree_node root, char * path, char ** lut){
 	}
 	else if(root->sym != NUL){ //Helper found something
 		lut[root->sym] = strdup(path);
-		printf("lut_helper found the %c character on route %s!\n", root->sym, path); //TODO remove temporary print statement
 	}
 	else{ //Helper found interior node
 		char * left_path = strdup(path);
@@ -185,8 +183,6 @@ char ** create_lut(Tree_node root){
 	char * path = (char *)calloc(1, sizeof(char));
 	
 	lut_helper(root, path, lut);
-	
-	printf("Lookup Table Created!\n"); //TODO remove temporary print statement
 
 	return lut;
 }

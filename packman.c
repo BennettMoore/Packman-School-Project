@@ -135,8 +135,6 @@ int main(int argc, char * argv[]){
 		//Find all symbols and use them to make a huffman tree
 		Tree_node root = make_huffman_tree(find_syms(file1));
 
-		print_tree(root); //TODO remove test print
-
 		//Construct a lookup table and then use it to make a bit storage array
 		uint * bit_st_array = make_bit_array(create_lut(root), file1);
 		
