@@ -21,6 +21,7 @@
  * @return 1 if lhs < rhs, 0 if lhs >= rhs
  *
  * @pre lhs and rhs are valid, non-empty Tree_nodes
+ *
  */
 int compare_syms(const void * lhs, const void * rhs);
 
@@ -43,6 +44,7 @@ void print_sym(const void * item, FILE * outfp);
  * @returns An array of Tree_nodes corresponding to the symbols in input
  *
  * @pre input is a valid file
+ *
  */
 Tree_node * find_syms(FILE * input);
 
@@ -54,7 +56,8 @@ Tree_node * find_syms(FILE * input);
  *
  * @return An interior node connected to its two child nodes
  *
- * @pre lhs is a valid, non-empty Tree_node
+ * @pre lhs and rhs are valid, non-empty Tree_nodes
+ *
  */
 Tree_node huffman_helper(Tree_node lhs, Tree_node rhs);
 
@@ -66,6 +69,8 @@ Tree_node huffman_helper(Tree_node lhs, Tree_node rhs);
  * @return The root of a huffman tree
  *
  * @pre The contents of nodes are all valid, non-empty Tree_nodes
+ * @post nodes is freed after use
+ *
  */
 Tree_node make_huffman_tree(Tree_node * nodes);
 
@@ -75,6 +80,7 @@ Tree_node make_huffman_tree(Tree_node * nodes);
  * @param root The current root of the tree being scanned
  * @param path The previous path taken to reach this point
  * @param lut The lookup table to write to
+ *
  */
 void lut_helper(Tree_node root, char * path, char ** lut);
 
@@ -100,6 +106,8 @@ char ** create_lut(Tree_node root);
  * and then shows the contents of the bit storage array
  *
  * @pre lut is a valid, non-empty lookup table that corresponds to the contents of input
+ * @post lut is freed after use
+ *
  */
 uint * make_bit_array(char ** lut, FILE * input);
 

@@ -33,7 +33,10 @@ int compare_syms(const void * lhs, const void * rhs){
  */
 void print_sym(const void * item, FILE * outfp){
 	Tree_node item_t = (Tree_node) item;
-	if(item_t->sym != NUL){
+	if(item_t == NULL){
+		fprintf(outfp, "NULL\n");
+	}
+	else if(item_t->sym != NUL){
 		fprintf(outfp, "%u:%c\n",item_t->freq, item_t->sym);
 	}
 	else{
@@ -46,8 +49,6 @@ void print_sym(const void * item, FILE * outfp){
  */
 Tree_node * find_syms(FILE * input){
 	bool still_reading = true;
-	size_t nmemb = BUFSIZE/BITS_PER_BYTE;
-	size_t size = BITS_PER_BYTE;
 	size_t read_size = 0;
 	uint * syms = (uint *)calloc(MAXSYM, sizeof(uint));
 	uchar * buffer = (uchar*)calloc(BUFSIZE, sizeof(uchar));
@@ -58,10 +59,11 @@ Tree_node * find_syms(FILE * input){
 	}
 
 	while(still_reading){
-		read_size = fread(buffer, size, nmemb, input);
+		read_size = fread(buffer, sizeof(uchar), BUFSIZE, input);
 	
-		if(read_size != nmemb){ //Read everything	
+		if(read_size != BUFSIZE){ //Read everything	
 			still_reading = false;
+			printf("find_syms read in %lu bytes. Should have read in %u bytes.\n", read_size, BUFSIZE);
 		}
 		for(size_t i = 0; i < read_size; i++){
 			syms[buffer[i]]++;
@@ -71,18 +73,12 @@ Tree_node * find_syms(FILE * input){
 
 	//Turn each unique symbol/frequency pair into a Tree_node and put it in an array
 	Tree_node * nodes = (Tree_node *)calloc(MAXSYM, sizeof(Tree_node));
-	size_t new_size = 0;
-
 
 	for(int i = 0; i < MAXSYM; i++){
-		if(syms[i] != 0){
-			nodes[new_size] = create_tree_node(i, syms[i]);
-			new_size++;
-		}
+		nodes[i] = create_tree_node(i, syms[i]);
 	}
 
 	//Housekeeeping
-	nodes = realloc(nodes, new_size*sizeof(Tree_node));
 	free(buffer);
 	free(syms);
 
@@ -106,6 +102,10 @@ Tree_node huffman_helper(Tree_node lhs, Tree_node rhs){
 	Tree_node temp = create_tree_node(NUL, tot_freq);
 	temp->left = lhs;
 	temp->right = rhs;
+	
+	printf("Interior node created with these two nodes:\n");
+	print_sym(temp->left, stdout);
+	print_sym(temp->right, stdout);
 
 	return temp;
 }
@@ -115,11 +115,16 @@ Tree_node huffman_helper(Tree_node lhs, Tree_node rhs){
  */
 Tree_node make_huffman_tree(Tree_node * nodes){
 	Heap tree_heap = hdt_create(MAXSYM, compare_syms, print_sym);
-	size_t node_num = sizeof(nodes)/sizeof(Tree_node*);
 	
 	//Sort nodes using a min-heap
-	for(size_t i = 0; i < node_num; i++){
-		hdt_insert_item(tree_heap, nodes[i]);
+	for(size_t i = 0; i < MAXSYM; i++){
+		if(nodes[i]->freq > 0){
+			hdt_insert_item(tree_heap, nodes[i]);
+			printf("~Node [%c] added to the heap with frequency [%i]\n", nodes[i]->sym, nodes[i]->freq); //TODO remove temporary print statement
+		}
+		else{
+			free(nodes[i]);
+		}
 	}
 	
 	Tree_node root = NULL;
@@ -129,13 +134,15 @@ Tree_node make_huffman_tree(Tree_node * nodes){
 	}
 	//Catch odd-numbered heaps
 	if(hdt_size(tree_heap) == 2){
-		root = huffman_helper(hdt_remove_top(tree_heap), NULL);
+		root = huffman_helper(hdt_remove_top(tree_heap), hdt_remove_top(tree_heap));
 	}
 	else{
 		root = hdt_remove_top(tree_heap);
 	}
-
+	
+	//Housekeeping
 	hdt_destroy(tree_heap);
+	free(nodes);
 
 	return root;
 }
@@ -145,13 +152,20 @@ Tree_node make_huffman_tree(Tree_node * nodes){
  */
 void lut_helper(Tree_node root, char * path, char ** lut){
 	
-	if(root == NULL){} //NULL Checking
+	if(root == NULL){ //NULL Checking
+		fprintf(stderr,"pack_encode.c:lut_helper:%i: Helper encountered a NULL node. Encountered at: %s\n", __LINE__, path);
+	}
 	else if(root->sym != NUL){ //Helper found something
-		strcpy(lut[root->sym], path);
+		lut[root->sym] = strdup(path);
+		printf("lut_helper found the %c character on route %s!\n", root->sym, path); //TODO remove temporary print statement
 	}
 	else{ //Helper found interior node
 		char * left_path = strdup(path);
 		char * right_path = strdup(path);
+		
+		left_path = realloc(left_path, sizeof(left_path) + sizeof(uchar)*2);
+		right_path = realloc(right_path, sizeof(right_path) + sizeof(uchar)*2);
+
 		strcat(left_path, "0");
 		strcat(right_path, "1");
 
@@ -168,12 +182,12 @@ void lut_helper(Tree_node root, char * path, char ** lut){
  */
 char ** create_lut(Tree_node root){
 	char ** lut = (char **)calloc(MAXSYM, sizeof(char *));
-	char * path = (char *)calloc(BUFSIZE, sizeof(char));
+	char * path = (char *)calloc(1, sizeof(char));
 	
-
 	lut_helper(root, path, lut);
 	
-	free(path);
+	printf("Lookup Table Created!\n"); //TODO remove temporary print statement
+
 	return lut;
 }
 
@@ -191,7 +205,7 @@ uint * make_bit_array(char ** lut, FILE * input){
 	//Rewind file to beginning
 	if(fseek(input, 0, SEEK_SET) != 0){
 		errno = ESPIPE;
-		report_error("pack_encode.c", __LINE__, "Input file", "File could not be rewound");
+		report_error("pack_encode.c:make_bit_array", __LINE__, "Input file", "File could not be rewound");
 		free(bit_array);
 		return NULL;
 	}
@@ -200,7 +214,7 @@ uint * make_bit_array(char ** lut, FILE * input){
 	while(fread(&buffer, sizeof(uchar), 1, input) == 1){
 		if(!lut[buffer]){ //Encountered invalid character
 			errno = 157; //Internal Error
-			fprintf(stderr, "error: '%c' does not exist in the generated lookup table\n", buffer);
+			fprintf(stderr, "pack_encode.c:make_bit_array:%i: '%c' does not exist in the generated lookup table\n", __LINE__, buffer);
 			free(bit_array);
 			return NULL;
 		}
@@ -226,7 +240,7 @@ uint * make_bit_array(char ** lut, FILE * input){
 					
 					if(bit_array == NULL){ //Realloc failed
 						errno = 151; //Dynamic Allocation Error
-						report_error("pack_encode.c", __LINE__, "bit_array realloc", "Fatal error: Reallocation of bit_array failed");
+						report_error("pack_encode.c:make_bit_array", __LINE__, "bit_array realloc", "Fatal error: Reallocation of bit_array failed");
 						return NULL;
 					}
 
@@ -241,5 +255,12 @@ uint * make_bit_array(char ** lut, FILE * input){
 	}
 
 	bit_array[0] = bits_used;
+	
+	//Housekeeping
+	for(int i = 0; i < MAXSYM; i++){
+		free(lut[i]);
+	}
+	free(lut);
+
 	return bit_array;
 }
