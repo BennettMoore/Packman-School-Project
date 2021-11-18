@@ -13,13 +13,51 @@
 #include "pack_decode.h"
 
 
+/**
+ * @brief Helps decode_bits traverse through the huffmantree
+ */
+void decoder_helper(Tree_node root, uchar * instructions, uint num_bits, FILE * output){
+	uint instruction_index = 0;
+	Tree_node curr_node = root;
+
+	//While there are still instructions
+	while(instruction_index < num_bits){
+		//While searching for a symbol
+		while(curr_node->sym == NUL){
+			if(instructions[instruction_index] == '0'){
+				curr_node = curr_node->left;
+			}
+			else if(instructions[instruction_index] == '1'){
+				curr_node = curr_node->right;
+			}
+			else{ //Illegal symbol
+				errno = EINVAL;
+				report_error("pack_decode:decoder_helper", __LINE__, "instructions", "Encountered instruction that was not '0' or '1'");
+				return;
+			}
+			instruction_index++;
+		}
+
+		//Write the symbol found
+		if(fwrite(&curr_node->sym, sizeof(uchar), 1, output) != 1){ //fwrite failed
+			errno = EINTR;
+			report_error("pack_decode:decoder_helper", __LINE__, "fwrite", "Could not write symbol to file");
+			return;
+		}
+		else{ //fwrite succeeds
+			curr_node = root;
+		}
+	}
+	if(curr_node != root){ //Fragmented codeword(s) found
+		errno = EILSEQ;
+		report_error("pack_decode:decoder_helper", __LINE__, "root", "Instructions did not correctly line up to the provided huffman tree");
+	}
+}
 
 /**
  * @brief Decodes bit array and writes decoded character to output file
  */
 void decode_bits(Tree_node root, uint num_bits, uint * bit_array, FILE * output){
-	(void) root; //TODO Remove temporary statement
-	(void) output; //TODO Remove temporary statement
 	uint bit_index = MAX_BIT_INDEX;
 	uint array_index = 0;
 	uchar * instructions = calloc(num_bits, sizeof(uchar));
@@ -40,7 +78,12 @@ void decode_bits(Tree_node root, uint num_bits, uint * bit_array, FILE * output)
 			array_index++;
 		}
 	}
-	//TODO Make helper function to parse instructions via the tree
+	
+	//Decode from tree and write to file
+	decoder_helper(root, instructions, num_bits, output);
+
+	//Housekeeping
+	free(instructions);
 }
 
 /**
