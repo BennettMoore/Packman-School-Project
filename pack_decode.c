@@ -124,7 +124,3 @@ void parse_file(FILE * input, FILE * output){
 	free(bit_array);
 	free_tree_node(root);
 }
-
-int main(void){ //Temporary main statement
-	return 0;
-}
