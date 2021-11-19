@@ -13,6 +13,7 @@
 #include "HeapDT.h"
 #include "packman_utils.h"
 #include "pack_encode.h"
+#include "pack_decode.h"
 
 #define MAGIC_NUM_BYTES 2
 
@@ -137,17 +138,9 @@ int main(int argc, char * argv[]){
 
 		//Construct a lookup table and then use it to make a bit storage array
 		uint * bit_st_array = make_bit_array(create_lut(root), file1);
-		
-		//Write header
-		if(fwrite(&magic, sizeof(unsigned short), 1, file2) != 1){
-			errno = EINTR;
-			report_error("packman.c:main:ETF", __LINE__, "fwrite", " Could not write header to file");
-				
-			close_file("packman.c:main:ETF", __LINE__, argv[1], file1);
-			close_file("packman.c:main:ETF", __LINE__, argv[2], file2);
-			
-			return EXIT_FAILURE;
-		}
+		uint st_array_bytes = (bit_st_array[0]/BITS_PER_BYTE) - 1;
+
+		print_tree(root); //TODO Remove temporary print statement
 		
 		//Write tree
 		if(write_tree(file2, root)){
@@ -161,7 +154,7 @@ int main(int argc, char * argv[]){
 		}
 		
 		//Write bit storage array length + bit storage array
-		if(fwrite(bit_st_array, sizeof(uint), sizeof(bit_st_array)/sizeof(uint*), file2) != sizeof(bit_st_array)/sizeof(uint*)){
+		if(fwrite(bit_st_array, sizeof(uint), st_array_bytes, file2) != st_array_bytes){
 			errno = EINTR;
 			report_error("packman.c:main:ETF", __LINE__, "fwrite", " Could not write bit storage array");
 			
@@ -179,9 +172,10 @@ int main(int argc, char * argv[]){
 
 //[DBF] //Decode Binary File
 
-	//TODO: Send files to be decoded
-	
-	//Temporary close statements
+	else{ //Decode File
+		parse_file(file1, file2);
+	}
+
 	fclose(file1);
 	fclose(file2);
 

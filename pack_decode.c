@@ -38,6 +38,12 @@ void decoder_helper(Tree_node root, uchar * instructions, uint num_bits, FILE * 
 			instruction_index++;
 		}
 
+		if(curr_node->sym == NUL){ //Found a NUL character
+			errno = 157; //Internal Error
+			report_error("pack_decode:decoder_helper", __LINE__, "curr_node", "Rogue NUL character discovered");
+			return;
+		}
+		
 		//Write the symbol found
 		if(fwrite(&curr_node->sym, sizeof(uchar), 1, output) != 1){ //fwrite failed
 			errno = EINTR;
@@ -91,6 +97,8 @@ void decode_bits(Tree_node root, uint num_bits, uint * bit_array, FILE * output)
  */
 void parse_file(FILE * input, FILE * output){
 
+	rewind(input);
+
 	//Read Tree
 	Tree_node root = read_tree(input);
 
@@ -99,6 +107,8 @@ void parse_file(FILE * input, FILE * output){
 		report_error("pack_decode.c:parse_file", __LINE__, "read_tree", "Huffman tree could not be created from encoded file");
 		return;
 	}
+
+	print_tree(root); //TODO Remove Temporary Print Statement
 	
 	//Read num_bits
 	uint num_bits = 0;
@@ -109,18 +119,19 @@ void parse_file(FILE * input, FILE * output){
 		free_tree_node(root);
 		return;
 	}
-	size_t array_size = (num_bits/BITS_IN_INT)+1;
+	size_t array_size = (num_bits/BITS_IN_INT);//+1;
 
 	//Read bit storage array	
-	uint * bit_array = (uint *)calloc(array_size, sizeof(uint));
+	uint bit_array[array_size];//(uint *)calloc(array_size, sizeof(uint));
 	size_t words_read = fread(bit_array, sizeof(uint), array_size, input); 
 	
 	if(words_read != array_size){ //fread failed
 		fprintf(stderr, "pack_decode.c:parse_file:%i: Read in %lu words of bit_array, supposed to read in %lu words.\n", __LINE__, words_read, array_size);
 	}
-	
-	decode_bits(root, num_bits, bit_array, output);
+	else{
+		decode_bits(root, num_bits, bit_array, output);
+	}
 
-	free(bit_array);
+	//free(bit_array);
 	free_tree_node(root);
 }

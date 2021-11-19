@@ -87,14 +87,16 @@ Tree_node * find_syms(FILE * input){
 /**
  * @brief Constructs interior nodes for the Huffman Tree
  */
-Tree_node huffman_helper(Tree_node lhs, Tree_node rhs){
+Tree_node huffman_helper(Tree_node rhs, Tree_node lhs){
 	uint tot_freq = 0;
 	
-	if(rhs != NULL){
+	if(rhs != NULL && lhs != NULL){
 		tot_freq = lhs->freq + rhs->freq;
 	}
 	else{
-		tot_freq = lhs->freq;
+		errno = 158; //Bad parameters
+		report_error("pack_encode:huffman_helper", __LINE__, "Parameters", "One or more treenodes passed to huffman_helper were NULL");
+		return NULL;
 	}
 	
 	//Creating the interior node
@@ -246,7 +248,7 @@ uint * make_bit_array(char ** lut, FILE * input){
 	}
 
 	bit_array[0] = bits_used;
-	
+
 	//Housekeeping
 	for(int i = 0; i < MAXSYM; i++){
 		free(lut[i]);
