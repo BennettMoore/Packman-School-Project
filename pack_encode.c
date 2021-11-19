@@ -70,11 +70,14 @@ Tree_node * find_syms(FILE * input){
 		}
 	}
 
-	//Turn each unique symbol/frequency pair into a Tree_node and put it in an array
+	//Turn each unique symbol/frequency pair into a Tree_node and 
+	//put it in an array
 	Tree_node * nodes = (Tree_node *)calloc(MAXSYM, sizeof(Tree_node));
 
 	for(int i = 0; i < MAXSYM; i++){
 		nodes[i] = create_tree_node(i, syms[i]);
+		nodes[i]->left = NULL;
+		nodes[i]->right = NULL;
 	}
 
 	//Housekeeeping
@@ -95,7 +98,11 @@ Tree_node huffman_helper(Tree_node rhs, Tree_node lhs){
 	}
 	else{
 		errno = 158; //Bad parameters
-		report_error("pack_encode:huffman_helper", __LINE__, "Parameters", "One or more treenodes passed to huffman_helper were NULL");
+		report_error("pack_encode:huffman_helper", __LINE__, 
+			"Parameters", 
+			"One or more treenodes passed to huffman_helper"
+			" were NULL");
+		
 		return NULL;
 	}
 	
@@ -125,12 +132,17 @@ Tree_node make_huffman_tree(Tree_node * nodes){
 	
 	Tree_node root = NULL;
 	while(hdt_size(tree_heap) > 2){
-		//Creates an interior node from the two lowest-frequency nodes in the heap, and inserts an interior node with the previous nodes attached
-		hdt_insert_item(tree_heap, huffman_helper(hdt_remove_top(tree_heap), hdt_remove_top(tree_heap)));
+		//Creates an interior node from the two lowest-frequency 
+		//nodes in the heap, and inserts an interior node with the 
+		//previous nodes attached
+		hdt_insert_item(tree_heap, 
+			huffman_helper(hdt_remove_top(tree_heap), 
+			hdt_remove_top(tree_heap)));
 	}
 	//Catch odd-numbered heaps
 	if(hdt_size(tree_heap) == 2){
-		root = huffman_helper(hdt_remove_top(tree_heap), hdt_remove_top(tree_heap));
+		root = huffman_helper(hdt_remove_top(tree_heap), 
+			hdt_remove_top(tree_heap));
 	}
 	else{
 		root = hdt_remove_top(tree_heap);
@@ -148,18 +160,19 @@ Tree_node make_huffman_tree(Tree_node * nodes){
  */
 void lut_helper(Tree_node root, char * path, char ** lut){
 	
-	if(root == NULL){ //NULL Checking
-		fprintf(stderr,"pack_encode.c:lut_helper:%i: Helper encountered a NULL node. Encountered at: %s\n", __LINE__, path);
-	}
-	else if(root->sym != NUL){ //Helper found something
+	if(root == NULL){} //NULL Checking
+	else if(root->left == NULL && root->right == NULL){ 
+		//Helper found something
 		lut[root->sym] = strdup(path);
 	}
 	else{ //Helper found interior node
 		char * left_path = strdup(path);
 		char * right_path = strdup(path);
 		
-		left_path = realloc(left_path, sizeof(left_path) + sizeof(uchar)*2);
-		right_path = realloc(right_path, sizeof(right_path) + sizeof(uchar)*2);
+		left_path = realloc(left_path, 
+				sizeof(left_path) + sizeof(uchar)*2);
+		right_path = realloc(right_path, 
+				sizeof(right_path) + sizeof(uchar)*2);
 
 		strcat(left_path, "0");
 		strcat(right_path, "1");
@@ -198,7 +211,8 @@ uint * make_bit_array(char ** lut, FILE * input){
 	//Rewind file to beginning
 	if(fseek(input, 0, SEEK_SET) != 0){
 		errno = ESPIPE;
-		report_error("pack_encode.c:make_bit_array", __LINE__, "Input file", "File could not be rewound");
+		report_error("pack_encode.c:make_bit_array", __LINE__, 
+				"Input file", "File could not be rewound");
 		free(bit_array);
 		return NULL;
 	}
@@ -207,7 +221,9 @@ uint * make_bit_array(char ** lut, FILE * input){
 	while(fread(&buffer, sizeof(uchar), 1, input) == 1){
 		if(!lut[buffer]){ //Encountered invalid character
 			errno = 157; //Internal Error
-			fprintf(stderr, "pack_encode.c:make_bit_array:%i: '%c' does not exist in the generated lookup table\n", __LINE__, buffer);
+			fprintf(stderr, "pack_encode.c:make_bit_array:%i:"
+				" '%c' does not exist in the generated"
+				" lookup table\n", __LINE__, buffer);
 			free(bit_array);
 			return NULL;
 		}
@@ -215,9 +231,11 @@ uint * make_bit_array(char ** lut, FILE * input){
 		//For all characters in the specific codeword
 		for(size_t i = 0; i < strlen(lut[buffer]); i++){
 			
-			if(lut[buffer][i] == '1'){ //1 should be placed in the uint
-				bit_array[array_index] = bit_array[array_index] | 1 << bit_index;
-			} //No need to place 0's since the uint is initialized to all 0
+			if(lut[buffer][i] == '1'){ 
+				//1 should be placed in the uint
+				bit_array[array_index] = bit_array[array_index] 					| 1 << bit_index;
+			} //No need to place 0's since the uint is 
+			  // initialized to all 0
 
 			if(bit_index > 0){ //Still bits in the uint
 				bit_index--;
@@ -229,15 +247,25 @@ uint * make_bit_array(char ** lut, FILE * input){
 				//Need to allocate more space
 				if(array_index >= array_size){
 					array_size += BIT_STORAGE_BLOCK;
-					bit_array = realloc(bit_array, array_size * sizeof(uint));
+					bit_array = realloc(bit_array, 
+						array_size * sizeof(uint));
 					
 					if(bit_array == NULL){ //Realloc failed
-						errno = 151; //Dynamic Allocation Error
-						report_error("pack_encode.c:make_bit_array", __LINE__, "bit_array realloc", "Fatal error: Reallocation of bit_array failed");
+						//Dynamic Allocation Error
+						errno = 151;
+						report_error("pack_encode.c:"
+							"make_bit_array", 
+							__LINE__, 
+							"bit_array realloc", 
+							"Fatal error:"
+							" Reallocation of"
+							" bit_array failed");
 						return NULL;
 					}
 
-					for(size_t j = array_index; j < array_size; j++){ //Set new allocated space to 0
+					for(size_t j = array_index; 
+						j < array_size; j++){ 
+						//Set new allocated space to 0
 						bit_array[j] = 0;
 					}
 				}
